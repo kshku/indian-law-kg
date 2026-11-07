@@ -1,12 +1,15 @@
 from time import perf_counter
 
-from rdflib import Namespace
+from rdflib import Literal, Namespace
+from rdflib.namespace import SKOS, XSD
 
 from indian_law_kg import config
+from indian_law_kg.annotations import OA
 from indian_law_kg.documents import Document
 from indian_law_kg.kg import KnowledgeGraph
 from indian_law_kg.ontology_generator import generate_ontology
 from indian_law_kg.validation import (
+    validate_annotations,
     validate_document,
     validate_parsed_sections,
 )
@@ -92,6 +95,38 @@ def test_validate_detects_wrong_document_links_despite_matching_totals(tmp_path)
 
     assert any("section 2 is not linked to its Act" in p for p in problems)
     assert any("foreign provision: act-b_Section2" in p for p in problems)
+
+
+def test_validate_annotations_accepts_fixture_and_detects_corruption(kg):
+    assert validate_annotations(kg) == []
+
+    passage = LEGAL["example-act-a_Section2_Passage1"]
+    concept = LEGAL.ConceptDefinitions
+    kg.graph.remove((passage, LEGAL.mentionsConcept, concept))
+    assert any(
+        "missing its mentionsConcept edge" in problem
+        for problem in validate_annotations(kg)
+    )
+    kg.graph.add((passage, LEGAL.mentionsConcept, concept))
+
+    position = LEGAL[
+        "Annotation_example-act-a_Section2_3_ConceptDefinitions_Position"
+    ]
+    for value in list(kg.graph.objects(position, OA.end)):
+        kg.graph.remove((position, OA.end, value))
+    kg.graph.add(
+        (position, OA.end, Literal(999, datatype=XSD.nonNegativeInteger))
+    )
+    assert any(
+        "quote does not match the passage text" in problem
+        for problem in validate_annotations(kg)
+    )
+
+    kg.graph.add((concept, SKOS.broader, LEGAL.ConceptMissing))
+    assert any(
+        "unknown broader target" in problem
+        for problem in validate_annotations(kg)
+    )
 
 
 def test_generated_graph_resolves_reviewed_inserted_section_ids():

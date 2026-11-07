@@ -1,9 +1,10 @@
 import json
 
 from rdflib import Namespace
-from rdflib.namespace import RDF
+from rdflib.namespace import RDF, SKOS
 
 from . import config
+from .annotations import OA
 from .documents import Document, load_documents
 from .kg import KnowledgeGraph
 
@@ -121,6 +122,132 @@ def validate_document(
     return problems
 
 
+def validate_annotations(kg: KnowledgeGraph) -> list[str]:
+    """Validate W3C concept annotations and local SKOS hierarchy links."""
+    problems = []
+    graph = kg.graph
+
+    for annotation in set(graph.subjects(RDF.type, OA.Annotation)):
+        annotation_name = str(annotation).rsplit("#", 1)[-1]
+        bodies = list(graph.objects(annotation, OA.hasBody))
+        targets = list(graph.objects(annotation, OA.hasTarget))
+
+        if len(bodies) != 1:
+            problems.append(
+                f"annotation {annotation_name} has {len(bodies)} bodies"
+            )
+        if not targets:
+            problems.append(
+                f"annotation {annotation_name} has no target"
+            )
+
+        body = bodies[0] if len(bodies) == 1 else None
+        if body is not None and (
+            body,
+            RDF.type,
+            LEGAL.LegalConcept,
+        ) not in graph:
+            problems.append(
+                f"annotation {annotation_name} body is not a LegalConcept"
+            )
+
+        for target in targets:
+            if (
+                target,
+                RDF.type,
+                OA.SpecificResource,
+            ) not in graph:
+                problems.append(
+                    f"annotation {annotation_name} target is not a "
+                    "SpecificResource"
+                )
+            sources = list(graph.objects(target, OA.hasSource))
+            if len(sources) != 1:
+                problems.append(
+                    f"annotation {annotation_name} target has "
+                    f"{len(sources)} sources"
+                )
+                continue
+            source = sources[0]
+            passage_text = graph.value(source, LEGAL.text)
+            if passage_text is None:
+                problems.append(
+                    f"annotation {annotation_name} source has no text"
+                )
+                continue
+
+            selectors = list(graph.objects(target, OA.hasSelector))
+            quotes = [
+                selector
+                for selector in selectors
+                if (selector, RDF.type, OA.TextQuoteSelector) in graph
+            ]
+            positions = [
+                selector
+                for selector in selectors
+                if (selector, RDF.type, OA.TextPositionSelector) in graph
+            ]
+            if len(quotes) != 1:
+                problems.append(
+                    f"annotation {annotation_name} has {len(quotes)} quote "
+                    "selectors"
+                )
+            if len(positions) != 1:
+                problems.append(
+                    f"annotation {annotation_name} has {len(positions)} "
+                    "position selectors"
+                )
+            if len(quotes) != 1 or len(positions) != 1:
+                continue
+
+            exact = graph.value(quotes[0], OA.exact)
+            start_value = graph.value(positions[0], OA.start)
+            end_value = graph.value(positions[0], OA.end)
+            try:
+                start = int(start_value)
+                end = int(end_value)
+            except (TypeError, ValueError):
+                problems.append(
+                    f"annotation {annotation_name} has non-integer offsets"
+                )
+                continue
+
+            if start < 0 or end <= start:
+                problems.append(
+                    f"annotation {annotation_name} has invalid offsets "
+                    f"{start}:{end}"
+                )
+            if exact is None:
+                problems.append(
+                    f"annotation {annotation_name} has no exact quote"
+                )
+            elif str(passage_text)[start:end] != str(exact):
+                problems.append(
+                    f"annotation {annotation_name} quote does not match the "
+                    "passage text"
+                )
+            if body is not None and (
+                source,
+                LEGAL.mentionsConcept,
+                body,
+            ) not in graph:
+                problems.append(
+                    f"annotation {annotation_name} is missing its "
+                    "mentionsConcept edge"
+                )
+
+    for concept in set(graph.subjects(RDF.type, LEGAL.LegalConcept)):
+        concept_name = str(concept).rsplit("#", 1)[-1]
+        for parent in graph.objects(concept, SKOS.broader):
+            if (parent, RDF.type, LEGAL.LegalConcept) not in graph:
+                problems.append(
+                    f"concept {concept_name} has unknown broader target "
+                    f"{str(parent).rsplit('#', 1)[-1]}"
+                )
+
+    return problems
+
+
 def main() -> None:
     documents = load_documents()
     kg = KnowledgeGraph(config.GENERATED_ONTOLOGY_PATH)
@@ -156,13 +283,19 @@ def main() -> None:
             problems.append(f"{document.id}: {message}")
             print(f"  - {message}")
 
+    for message in validate_annotations(kg):
+        problems.append(f"annotations: {message}")
+        print(f"  - {message}")
+
     print(f"Documents validated: {len(documents)}")
     print(f"Parsed sections: {total_sections}")
     print(
         "RDF totals: "
         f"{len(set(kg.graph.subjects(RDF.type, LEGAL.Provision)))} provisions, "
         f"{len(set(kg.graph.subjects(RDF.type, LEGAL.TextPassage)))} passages, "
-        f"{len(set(kg.graph.subjects(RDF.type, LEGAL.ReferenceMention)))} references"
+        f"{len(set(kg.graph.subjects(RDF.type, LEGAL.ReferenceMention)))} references, "
+        f"{len(set(kg.graph.subjects(RDF.type, LEGAL.LegalConcept)))} concepts, "
+        f"{len(set(kg.graph.subjects(RDF.type, OA.Annotation)))} annotations"
     )
     if problems:
         raise SystemExit(1)

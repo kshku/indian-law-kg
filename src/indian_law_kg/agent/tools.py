@@ -46,6 +46,15 @@ def build_tools(kg: KnowledgeGraph, graph) -> list:
         return kg.find_sections(query, document_id)
 
     @tool
+    def kg_get_concepts(
+        section_id: str, document_id: str | None = None
+    ) -> list[dict]:
+        """Return local legal concepts annotated in a section, including the
+        matched text and character offsets. Concepts are labels, not legal
+        conclusions. Supply the document ID when more than one Act is loaded."""
+        return kg.get_concepts(section_id, document_id)
+
+    @tool
     def kg_get_references(
         section_id: str, document_id: str | None = None
     ) -> list[dict]:
@@ -74,6 +83,7 @@ def build_tools(kg: KnowledgeGraph, graph) -> list:
         kg_list_sections,
         kg_get_section,
         kg_find_sections,
+        kg_get_concepts,
         kg_get_references,
         kg_get_referenced_by,
         kg_sparql,

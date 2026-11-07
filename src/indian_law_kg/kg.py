@@ -10,9 +10,11 @@ from .sparql import run_ask, run_select
 LEGAL = Namespace(f"{config.ONTOLOGY_IRI}#")
 QUERY_PREFIXES = (
     f"PREFIX legal: <{config.ONTOLOGY_IRI}#>\n"
+    "PREFIX oa: <http://www.w3.org/ns/oa#>\n"
     "PREFIX owl: <http://www.w3.org/2002/07/owl#>\n"
     "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>\n"
     "PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>\n"
+    "PREFIX skos: <http://www.w3.org/2004/02/skos/core#>\n"
     "PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>\n"
 )
 
@@ -298,6 +300,45 @@ class KnowledgeGraph:
             "references": self.get_references(section_id, resolved_id),
             "referenced_by": self.get_referenced_by(section_id, resolved_id),
         }
+
+    def get_concepts(
+        self, section_id: str, document_id: str | None = None
+    ) -> list[dict]:
+        """Return W3C concept annotations attached to one section."""
+        resolved_id = self._resolve_document_id(document_id)
+        rows = run_select(
+            self.graph,
+            QUERY_PREFIXES
+            + "SELECT DISTINCT ?concept ?label ?exact ?start ?end WHERE { "
+            "?act a legal:Act ; legal:hasProvision ?provision . "
+            "?provision legal:sectionNumber ?section_id ; "
+            "legal:containsPassage ?passage . "
+            "?passage legal:mentionsConcept ?concept . "
+            "?annotation a oa:Annotation ; oa:hasBody ?concept ; "
+            "oa:hasTarget ?target . "
+            "?target oa:hasSource ?passage ; "
+            "oa:hasSelector ?quote ; oa:hasSelector ?position . "
+            "?quote a oa:TextQuoteSelector ; oa:exact ?exact . "
+            "?position a oa:TextPositionSelector ; "
+            "oa:start ?start ; oa:end ?end . "
+            "OPTIONAL { ?concept skos:prefLabel ?label } "
+            "FILTER(?act = ?document && ?section_id = ?requested_section) "
+            "} ORDER BY ?start ?concept",
+            {
+                "document": self._act(resolved_id),
+                "requested_section": Literal(section_id),
+            },
+        )
+        return [
+            {
+                "concept": _local_name(row["concept"]),
+                "label": row.get("label") or "",
+                "text": row["exact"] or "",
+                "start": int(row["start"]),
+                "end": int(row["end"]),
+            }
+            for row in rows
+        ]
 
     def get_references(
         self, section_id: str, document_id: str | None = None

@@ -1,8 +1,12 @@
+from pathlib import Path
+
 import pytest
 from rdflib import Graph, Literal, Namespace
 from rdflib.namespace import OWL, RDF, RDFS, XSD
 
+from indian_law_kg.annotations import Concept, add_annotations
 from indian_law_kg.config import ONTOLOGY_IRI
+from indian_law_kg.documents import Document
 from indian_law_kg.kg import KnowledgeGraph
 
 LEGAL = Namespace(f"{ONTOLOGY_IRI}#")
@@ -107,6 +111,48 @@ def kg(tmp_path):
         ),
     ]:
         _add_section(graph, document_id, section_id, title, text, page)
+
+    annotation_concepts = [
+        Concept(
+            id="definitions",
+            label="definitions",
+            definition="Statements that define terms used in an Act.",
+            aliases=("definitions",),
+        ),
+        Concept(
+            id="appeal",
+            label="appeal",
+            definition="A request for review of a decision.",
+            aliases=("appeal", "appeals"),
+        ),
+    ]
+    annotation_document = Document(
+        id="example-act-a",
+        title="Example Act A",
+        pdf_path=Path("unused.pdf"),
+        source_url="https://example.org/a",
+        expected_sections=6,
+    )
+    add_annotations(
+        graph,
+        annotation_document,
+        {
+            "section_id": "2",
+            "title": "Definitions",
+            "text": "2. Definitions.—See sections 2A and 53-O and section 99.",
+        },
+        annotation_concepts,
+    )
+    add_annotations(
+        graph,
+        annotation_document,
+        {
+            "section_id": "10",
+            "title": "Appeals",
+            "text": "10. Appeals.—Neutral appeal text.",
+        },
+        annotation_concepts,
+    )
 
     references = [
         ("example-act-a", "2", 1, "sections 2A", "resolved", "2A"),

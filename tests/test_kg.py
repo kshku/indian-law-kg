@@ -53,6 +53,23 @@ def test_get_section_is_document_scoped_and_unknown_section_is_none(kg):
     assert kg.get_section("99", "example-act-b")["title"] == "Only in Act B"
 
 
+def test_get_concepts_returns_annotations_for_one_section(kg):
+    assert kg.get_concepts("2", "example-act-a") == [
+        {
+            "concept": "ConceptDefinitions",
+            "label": "definitions",
+            "text": "Definitions",
+            "start": 3,
+            "end": 14,
+        }
+    ]
+    assert [
+        concept["concept"]
+        for concept in kg.get_concepts("10", "example-act-a")
+    ] == ["ConceptAppeal", "ConceptAppeal"]
+    assert kg.get_concepts("99", "example-act-a") == []
+
+
 def test_section_addressed_calls_require_document_when_ambiguous(kg):
     with pytest.raises(ValueError, match="document_id is required"):
         kg.get_section("2")
@@ -138,6 +155,9 @@ def test_runtime_kg_retrieval_uses_sparql_not_graph_traversal(
     )
     assert kg.get_references("2", "example-act-a")[0]["target"] == "2A"
     assert kg.get_referenced_by("2", "example-act-a") == ["2A"]
+    assert kg.get_concepts("2", "example-act-a")[0]["concept"] == (
+        "ConceptDefinitions"
+    )
 
 
 def test_missing_schema_is_reported(monkeypatch, tmp_path, kg):
