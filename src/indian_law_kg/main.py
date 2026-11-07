@@ -4,11 +4,13 @@ import json
 from pathlib import Path
 
 import pymupdf
+from rdflib.namespace import RDF
 
 from . import config
+from .annotations import OA
 from .documents import get_document, load_documents
 from .kg import KnowledgeGraph
-from .ontology_generator import generate_ontology
+from .ontology_generator import LEGAL, generate_ontology
 from .parser import parse
 from .pdf_utils import extract_pdf
 
@@ -138,6 +140,14 @@ def command_build() -> None:
 
     print(f"Documents processed: {len(documents)}")
     print(f"Sections processed: {total_sections}")
+    print(
+        "Concepts generated: "
+        f"{len(list(graph.subjects(RDF.type, LEGAL.LegalConcept)))}"
+    )
+    print(
+        "Annotations generated: "
+        f"{len(list(graph.subjects(RDF.type, OA.Annotation)))}"
+    )
     print(f"RDF triples generated: {len(graph)}")
     print(f"Output: {config.GENERATED_ONTOLOGY_PATH}")
 

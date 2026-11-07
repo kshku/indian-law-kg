@@ -2,9 +2,16 @@ import json
 from collections.abc import Sequence
 
 from rdflib import Graph, Literal, Namespace, URIRef
-from rdflib.namespace import OWL, RDF, XSD
+from rdflib.namespace import OWL, RDF, RDFS, SKOS, XSD
 
 from . import config
+from .annotations import (
+    OA,
+    Concept,
+    add_annotations,
+    add_concepts,
+    load_concepts,
+)
 from .documents import Document, load_documents
 from .references import extract_references, resolution_status
 
@@ -77,12 +84,20 @@ def _validate_sections(document: Document, sections: Sequence[dict]) -> set[str]
 
 def generate_ontology(
     documents: Sequence[tuple[Document, Sequence[dict]]],
+    concepts: Sequence[Concept] | None = None,
 ) -> Graph:
     """Generate a deterministic graph for each Act and its provisions."""
     graph = Graph()
     graph.bind("legal", LEGAL)
+    graph.bind("oa", OA)
     graph.bind("owl", OWL)
+    graph.bind("rdfs", RDFS)
+    graph.bind("skos", SKOS)
     graph.bind("xsd", XSD)
+
+    if concepts is None:
+        concepts = load_concepts()
+    add_concepts(graph, concepts)
 
     data_ontology = URIRef(config.DATA_ONTOLOGY_IRI)
     graph.add((data_ontology, RDF.type, OWL.Ontology))
@@ -155,6 +170,13 @@ def generate_ontology(
                 )
             )
             graph.add((provision, LEGAL.containsPassage, passage))
+            add_annotations(
+                graph,
+                document,
+                section,
+                concepts,
+                add_metadata=False,
+            )
 
     # Resolve citations only after provisions for their source Act exist.
     for document, sections in documents:
