@@ -8,9 +8,12 @@ authors = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "fastembed>=0.9.1",
     "langchain>=1.4.0",
+    "numpy>=2.5.4",
     "pydantic-settings>=2.15.0",
     "pymupdf>=2.0",
+    "qdrant-client>=1.20.0",
     "rdflib>=7.6.0",
 ]
 
