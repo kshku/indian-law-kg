@@ -1,0 +1,375 @@
+{
+  "concepts": [
+    {
+      "id": "consumer-protection",
+      "label": "consumer protection",
+      "definition": "Legal rules that protect buyers of goods and recipients of services from unfair or unsafe practices.",
+      "aliases": ["consumer protection"],
+      "broader": null
+    },
+    {
+      "id": "consumer",
+      "label": "consumer",
+      "definition": "A person who buys goods or hires services for consideration and personal use.",
+      "aliases": ["consumer", "consumers"],
+      "broader": "consumer-protection"
+    },
+    {
+      "id": "consumer-complaint",
+      "label": "consumer complaint",
+      "definition": "A formal allegation by a consumer about goods, services, or a trader's conduct.",
+      "aliases": ["complaint", "complaints", "consumer complaint", "consumer complaints"],
+      "broader": "consumer-protection"
+    },
+    {
+      "id": "refund",
+      "label": "refund",
+      "definition": "The return of money paid for goods or services.",
+      "aliases": ["refund", "refunds", "repayment"],
+      "broader": "consumer-protection"
+    },
+    {
+      "id": "defect",
+      "label": "defect",
+      "definition": "A fault, imperfection, or shortcoming in goods or a product.",
+      "aliases": ["defect", "defects", "defective"],
+      "broader": "consumer-protection"
+    },
+    {
+      "id": "deficiency",
+      "label": "deficiency",
+      "definition": "A shortcoming or inadequacy in the quality, nature, or manner of performance of a service.",
+      "aliases": ["deficiency", "deficiencies", "deficient"],
+      "broader": "consumer-protection"
+    },
+    {
+      "id": "service",
+      "label": "service",
+      "definition": "A service of any description made available to potential users, including facilities related to banking, insurance, transport, and housing.",
+      "aliases": ["service", "services"],
+      "broader": "consumer-protection"
+    },
+    {
+      "id": "unfair-trade-practice",
+      "label": "unfair trade practice",
+      "definition": "A trade practice that adopts unfair or deceptive methods to promote goods or services.",
+      "aliases": ["unfair trade practice", "unfair trade practices"],
+      "broader": "consumer-protection"
+    },
+    {
+      "id": "restrictive-trade-practice",
+      "label": "restrictive trade practice",
+      "definition": "A trade practice that prevents, distorts, or restricts competition.",
+      "aliases": ["restrictive trade practice", "restrictive trade practices"],
+      "broader": "competition-law"
+    },
+    {
+      "id": "misleading-advertisement",
+      "label": "misleading advertisement",
+      "definition": "An advertisement that falsely describes a product or service or creates a misleading impression.",
+      "aliases": ["misleading advertisement", "misleading advertisements", "misleading advertising"],
+      "broader": "consumer-protection"
+    },
+    {
+      "id": "product-liability",
+      "label": "product liability",
+      "definition": "Liability of a product manufacturer, seller, or service provider for harm caused by a defective product or deficient service.",
+      "aliases": ["product liability", "product liabilities"],
+      "broader": "consumer-protection"
+    },
+    {
+      "id": "consumer-dispute",
+      "label": "consumer dispute",
+      "definition": "A dispute between a consumer and a trader, manufacturer, or service provider about goods or services.",
+      "aliases": ["consumer dispute", "consumer disputes"],
+      "broader": "consumer-protection"
+    },
+    {
+      "id": "e-commerce",
+      "label": "e-commerce",
+      "definition": "Buying or selling goods or services through electronic or digital networks.",
+      "aliases": ["e-commerce", "electronic commerce", "electronic service provider"],
+      "broader": "consumer-protection"
+    },
+    {
+      "id": "competition-law",
+      "label": "competition law",
+      "definition": "Legal rules that promote and sustain competition in markets and prohibit anti-competitive conduct.",
+      "aliases": ["competition law"],
+      "broader": null
+    },
+    {
+      "id": "enterprise",
+      "label": "enterprise",
+      "definition": "A person or body engaged in the production, distribution, or provision of goods or services.",
+      "aliases": ["enterprise", "enterprises"],
+      "broader": "competition-law"
+    },
+    {
+      "id": "dominant-position",
+      "label": "dominant position",
+      "definition": "A position of strength that lets an enterprise operate independently of competitive forces or affect competitors and consumers.",
+      "aliases": ["dominant position"],
+      "broader": "competition-law"
+    },
+    {
+      "id": "abuse-of-dominant-position",
+      "label": "abuse of dominant position",
+      "definition": "Anti-competitive conduct by an enterprise that holds a dominant position in a market.",
+      "aliases": ["abuse of dominant position", "abuse of dominance"],
+      "broader": "dominant-position"
+    },
+    {
+      "id": "agreement",
+      "label": "agreement",
+      "definition": "An arrangement or understanding between enterprises, whether formal or informal.",
+      "aliases": ["agreement", "agreements"],
+      "broader": "competition-law"
+    },
+    {
+      "id": "cartel",
+      "label": "cartel",
+      "definition": "An association of producers, sellers, or service providers that limits competition through coordinated conduct.",
+      "aliases": ["cartel", "cartels"],
+      "broader": "competition-law"
+    },
+    {
+      "id": "merger",
+      "label": "merger",
+      "definition": "The combination of two or more enterprises into one entity or group.",
+      "aliases": ["merger", "mergers"],
+      "broader": "competition-law"
+    },
+    {
+      "id": "acquisition",
+      "label": "acquisition",
+      "definition": "The purchase or taking of control over the whole or part of another enterprise.",
+      "aliases": ["acquisition", "acquisitions"],
+      "broader": "competition-law"
+    },
+    {
+      "id": "enforcement",
+      "label": "enforcement",
+      "definition": "The process of implementing, monitoring, and securing compliance with legal requirements.",
+      "aliases": ["enforcement"],
+      "broader": null
+    },
+    {
+      "id": "penalty",
+      "label": "penalty",
+      "definition": "A financial or other sanction imposed for a breach of legal requirements.",
+      "aliases": ["penalty", "penalties"],
+      "broader": "enforcement"
+    },
+    {
+      "id": "appeal",
+      "label": "appeal",
+      "definition": "A request to a higher authority or court to review a decision.",
+      "aliases": ["appeal", "appeals"],
+      "broader": "enforcement"
+    },
+    {
+      "id": "tribunal",
+      "label": "Tribunal",
+      "definition": "A body established to adjudicate specified disputes or appeals.",
+      "aliases": ["tribunal", "tribunals", "appellate tribunal"],
+      "broader": "enforcement"
+    },
+    {
+      "id": "dispute-resolution",
+      "label": "dispute resolution",
+      "definition": "Processes for resolving disagreements outside ordinary litigation.",
+      "aliases": ["dispute resolution"],
+      "broader": null
+    },
+    {
+      "id": "mediation",
+      "label": "mediation",
+      "definition": "A voluntary process in which a mediator helps parties reach a settlement.",
+      "aliases": ["mediation"],
+      "broader": "dispute-resolution"
+    },
+    {
+      "id": "mediator",
+      "label": "mediator",
+      "definition": "A neutral person who facilitates communication and settlement in mediation.",
+      "aliases": ["mediator", "mediators"],
+      "broader": "mediation"
+    },
+    {
+      "id": "food-safety",
+      "label": "food safety",
+      "definition": "Legal requirements and controls that ensure food is safe and fit for human consumption.",
+      "aliases": ["food safety"],
+      "broader": null
+    },
+    {
+      "id": "food-business",
+      "label": "food business",
+      "definition": "An undertaking involved in the manufacture, processing, storage, distribution, or sale of food.",
+      "aliases": ["food business", "food businesses", "food business operator"],
+      "broader": "food-safety"
+    },
+    {
+      "id": "standardisation",
+      "label": "standardisation",
+      "definition": "The process of establishing and applying standards for products, processes, and services.",
+      "aliases": ["standardisation", "standardization"],
+      "broader": null
+    },
+    {
+      "id": "standard",
+      "label": "standard",
+      "definition": "A documented requirement, specification, or guideline used to ensure quality or safety.",
+      "aliases": ["standard"],
+      "broader": "standardisation"
+    },
+    {
+      "id": "licence",
+      "label": "licence",
+      "definition": "A formal permission granted to carry on an activity subject to legal conditions.",
+      "aliases": ["licence", "license", "licences", "licenses"],
+      "broader": "enforcement"
+    },
+    {
+      "id": "legal-metrology",
+      "label": "legal metrology",
+      "definition": "Legal control of weights, measures, and measuring instruments used in trade and commerce.",
+      "aliases": ["legal metrology"],
+      "broader": null
+    },
+    {
+      "id": "railways",
+      "label": "railway",
+      "definition": "The railway system, including railway administration, trains, tracks, and related services.",
+      "aliases": ["railway", "railways", "railway administration"],
+      "broader": null
+    },
+    {
+      "id": "passenger",
+      "label": "passenger",
+      "definition": "A person travelling or intending to travel by railway or another mode of transport.",
+      "aliases": ["passenger", "passengers"],
+      "broader": "railways"
+    },
+    {
+      "id": "transport",
+      "label": "transport",
+      "definition": "The movement of goods or persons from one place to another.",
+      "aliases": ["transport", "transportation"],
+      "broader": null
+    },
+    {
+      "id": "carrier",
+      "label": "carrier",
+      "definition": "A person or entity that undertakes to transport goods or passengers.",
+      "aliases": ["carrier", "carriers"],
+      "broader": "transport"
+    },
+    {
+      "id": "compensation",
+      "label": "compensation",
+      "definition": "Payment or other redress for loss, injury, or damage.",
+      "aliases": ["compensation"],
+      "broader": "enforcement"
+    },
+    {
+      "id": "certification",
+      "label": "certification",
+      "definition": "Formal confirmation that a product, process, or service meets specified standards.",
+      "aliases": ["certification", "certifications"],
+      "broader": "standardisation"
+    },
+    {
+      "id": "hallmark",
+      "label": "hallmark",
+      "definition": "An official mark confirming that an article meets a prescribed standard, especially for precious metals.",
+      "aliases": ["hallmark", "hallmarks", "hallmarking"],
+      "broader": "standardisation"
+    },
+    {
+      "id": "manufacturer",
+      "label": "manufacturer",
+      "definition": "A person or entity that makes or produces goods.",
+      "aliases": ["manufacturer", "manufacturers"],
+      "broader": "consumer-protection"
+    },
+    {
+      "id": "seller",
+      "label": "seller",
+      "definition": "A person or entity that sells or offers goods for sale.",
+      "aliases": ["seller", "sellers"],
+      "broader": "consumer-protection"
+    },
+    {
+      "id": "product",
+      "label": "product",
+      "definition": "An article or substance manufactured, produced, or offered for sale.",
+      "aliases": ["product", "products"],
+      "broader": "consumer-protection"
+    },
+    {
+      "id": "inspection",
+      "label": "inspection",
+      "definition": "Official examination of premises, goods, records, or processes to check compliance.",
+      "aliases": ["inspection", "inspections"],
+      "broader": "enforcement"
+    },
+    {
+      "id": "search-and-seizure",
+      "label": "search and seizure",
+      "definition": "The legal power to search premises or things and take possession of evidence or contraband.",
+      "aliases": ["search and seizure", "search and seizure operations", "search or seizure"],
+      "broader": "enforcement"
+    },
+    {
+      "id": "offence",
+      "label": "offence",
+      "definition": "A violation of law that may lead to prosecution or other legal consequences.",
+      "aliases": ["offence", "offences", "offense", "offenses"],
+      "broader": "enforcement"
+    },
+    {
+      "id": "punishment",
+      "label": "punishment",
+      "definition": "A sanction imposed on a person for committing an offence.",
+      "aliases": ["punishment", "punishments"],
+      "broader": "enforcement"
+    },
+    {
+      "id": "insurance",
+      "label": "insurance",
+      "definition": "A contract under which an insurer agrees to indemnify the insured against specified losses.",
+      "aliases": ["insurance"],
+      "broader": "transport"
+    },
+    {
+      "id": "baggage",
+      "label": "baggage",
+      "definition": "Personal belongings carried by a passenger during travel.",
+      "aliases": ["baggage"],
+      "broader": "railways"
+    },
+    {
+      "id": "multimodal-transport",
+      "label": "multimodal transport",
+      "definition": "Carriage of goods under a single contract using more than one mode of transport.",
+      "aliases": ["multimodal transport", "multimodal transportation"],
+      "broader": "transport"
+    },
+    {
+      "id": "director-general",
+      "label": "Director General",
+      "definition": "A statutory officer with investigation or enforcement responsibilities under an Act.",
+      "aliases": ["Director General"],
+      "broader": "enforcement"
+    },
+    {
+      "id": "adjudicating-officer",
+      "label": "adjudicating officer",
+      "definition": "An officer empowered to adjudicate specified contraventions and impose penalties.",
+      "aliases": ["adjudicating officer", "adjudicating officers"],
+      "broader": "enforcement"
+    }
+  ]
+}
