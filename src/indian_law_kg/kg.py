@@ -5,6 +5,7 @@ from rdflib import Graph, Literal, Namespace, URIRef
 from rdflib.namespace import OWL, RDF, RDFS
 
 from . import config
+from .annotations import concept_iri
 from .sparql import run_ask, run_select
 
 LEGAL = Namespace(f"{config.ONTOLOGY_IRI}#")
@@ -258,6 +259,111 @@ class KnowledgeGraph:
             }
             for row in rows
         ]
+
+    def list_sections_with_text(
+        self, document_id: str | None = None
+    ) -> list[dict]:
+        """List sections with their full passage text and page number."""
+        filter_document = ""
+        bindings = {}
+        if document_id is not None:
+            resolved_id = self._resolve_document_id(document_id)
+            filter_document = "FILTER(?act = ?requested_document) "
+            bindings["requested_document"] = self._act(resolved_id)
+
+        rows = run_select(
+            self.graph,
+            QUERY_PREFIXES
+            + "SELECT ?act ?document_title ?source_url ?section_id ?title "
+            "?text ?page "
+            + _section_order("?section_id")
+            + "WHERE { "
+            "?act a legal:Act ; legal:title ?document_title ; "
+            "legal:hasProvision ?provision . "
+            "?provision a legal:Provision ; legal:sectionNumber ?section_id ; "
+            "legal:sectionTitle ?title ; legal:containsPassage ?passage . "
+            "?passage a legal:TextPassage ; legal:text ?text . "
+            "OPTIONAL { ?act legal:sourceURL ?source_url } "
+            "OPTIONAL { ?passage legal:pageNumber ?page } "
+            f"{filter_document}"
+            "} ORDER BY STR(?act) ?section_order ?section_suffix "
+            "STR(?section_id)",
+            bindings,
+        )
+        return [
+            {
+                "document_id": _local_name(row["act"]),
+                "document_title": row["document_title"] or "",
+                "source_url": row.get("source_url"),
+                "section_id": row["section_id"],
+                "title": row["title"] or "",
+                "text": row["text"] or "",
+                "start_page": int(row["page"]) if row.get("page") else None,
+            }
+            for row in rows
+        ]
+
+    def get_sections(
+        self, keys: list[tuple[str, str]]
+    ) -> list[dict]:
+        """Hydrate section keys in input order with one SPARQL query."""
+        unique_keys = []
+        seen = set()
+        for key in keys:
+            if key in seen:
+                continue
+            seen.add(key)
+            unique_keys.append(key)
+        if not unique_keys:
+            return []
+
+        resolved = {
+            document_id: self._resolve_document_id(document_id)
+            for document_id, _ in unique_keys
+        }
+        provisions = {}
+        for document_id, section_id in unique_keys:
+            provisions[
+                str(self._provision(resolved[document_id], section_id))
+            ] = (document_id, section_id)
+
+        values = " ".join(
+            URIRef(provision).n3() for provision in provisions
+        )
+        rows = run_select(
+            self.graph,
+            QUERY_PREFIXES
+            + "SELECT ?provision ?act ?document_title ?source_url "
+            "?section_id ?title ?text ?page WHERE { "
+            f"VALUES ?provision {{ {values} }} "
+            "?act a legal:Act ; legal:title ?document_title ; "
+            "legal:hasProvision ?provision . "
+            "?provision a legal:Provision ; legal:sectionNumber ?section_id ; "
+            "legal:sectionTitle ?title ; legal:containsPassage ?passage . "
+            "?passage a legal:TextPassage ; legal:text ?text . "
+            "OPTIONAL { ?act legal:sourceURL ?source_url } "
+            "OPTIONAL { ?passage legal:pageNumber ?page } "
+            "}",
+        )
+        by_provision = {
+            str(row["provision"]): {
+                "document_id": _local_name(row["act"]),
+                "document_title": row["document_title"] or "",
+                "source_url": row.get("source_url"),
+                "section_id": row["section_id"],
+                "title": row["title"] or "",
+                "text": row["text"] or "",
+                "start_page": int(row["page"]) if row.get("page") else None,
+            }
+            for row in rows
+        }
+
+        results = []
+        for provision in provisions:
+            result = by_provision.get(provision)
+            if result is not None:
+                results.append(result)
+        return results
 
     def get_section(
         self, section_id: str, document_id: str | None = None
@@ -516,6 +622,161 @@ class KnowledgeGraph:
             )
 
         return direct_results + related_results
+
+    def find_sections_by_concepts(
+        self,
+        concept_ids: list[str],
+        document_id: str | None = None,
+    ) -> list[dict]:
+        """Find ontology-grounded sections and their one-hop citation neighbours."""
+        if not concept_ids:
+            return []
+
+        concept_uris = []
+        for concept_id in concept_ids:
+            if concept_id.startswith(("http://", "https://")):
+                concept_uris.append(URIRef(concept_id))
+            else:
+                concept_uris.append(concept_iri(concept_id))
+        values = " ".join(uri.n3() for uri in concept_uris)
+
+        document_filter = ""
+        bindings = {}
+        if document_id is not None:
+            resolved_id = self._resolve_document_id(document_id)
+            document_filter = "FILTER(?document = ?requested_document) "
+            bindings["requested_document"] = self._act(resolved_id)
+
+        rows = run_select(
+            self.graph,
+            QUERY_PREFIXES
+            + "SELECT DISTINCT ?document ?document_title ?source_url "
+            "?section_id ?title ?text ?provision ?concept ?concept_label "
+            + _section_order("?section_id")
+            + "WHERE { "
+            "?document legal:hasProvision ?provision . "
+            "?provision legal:sectionNumber ?section_id ; "
+            "legal:sectionTitle ?title ; legal:containsPassage ?passage . "
+            "?passage legal:text ?text ; legal:mentionsConcept ?concept . "
+            f"VALUES ?concept {{ {values} }} "
+            "OPTIONAL { ?document legal:title ?document_title } "
+            "OPTIONAL { ?document legal:sourceURL ?source_url } "
+            "OPTIONAL { ?concept skos:prefLabel ?concept_label } "
+            "FILTER EXISTS { ?document a legal:Act } "
+            "FILTER EXISTS { ?provision a legal:Provision } "
+            "FILTER EXISTS { ?passage a legal:TextPassage } "
+            "FILTER EXISTS { ?concept a legal:LegalConcept } "
+            f"{document_filter}"
+            "} ORDER BY STR(?document) ?section_order ?section_suffix "
+            "STR(?section_id) ?concept",
+            bindings,
+        )
+
+        direct_rows = {}
+        concepts_by_key = {}
+        for row in rows:
+            key = (_local_name(row["document"]), row["section_id"])
+            direct_rows.setdefault(key, row)
+            label = row.get("concept_label") or _local_name(row["concept"])
+            labels = concepts_by_key.setdefault(key, [])
+            if label not in labels:
+                labels.append(label)
+
+        direct_results = [
+            self._concept_result(
+                row,
+                "concept",
+                None,
+                concepts_by_key[key],
+            )
+            for key, row in direct_rows.items()
+        ]
+        direct_keys = set(direct_rows)
+        direct_provisions = sorted(
+            {
+                row["provision"]
+                for row in direct_rows.values()
+                if row.get("provision")
+            }
+        )
+
+        related_results = []
+        if direct_provisions:
+            matched_values = " ".join(
+                URIRef(provision).n3() for provision in direct_provisions
+            )
+            related_rows = run_select(
+                self.graph,
+                QUERY_PREFIXES
+                + "SELECT DISTINCT ?document ?document_title ?source_url "
+                "?section_id ?title ?text ?related ?related_via "
+                + _section_order("?section_id")
+                + '(IF(?related_via = "references", 0, 1) AS ?relation_order) '
+                "WHERE { "
+                f"VALUES ?matched {{ {matched_values} }} "
+                "?document legal:hasProvision ?matched . "
+                "OPTIONAL { ?document legal:title ?document_title } "
+                "OPTIONAL { ?document legal:sourceURL ?source_url } "
+                "?matched legal:containsPassage ?matched_passage . "
+                "{ ?mention legal:occursIn ?matched_passage ; "
+                "legal:referencesProvision ?related . "
+                'BIND("references" AS ?related_via) } '
+                "UNION { ?mention legal:referencesProvision ?matched ; "
+                "legal:occursIn ?related_passage . "
+                "?related legal:containsPassage ?related_passage . "
+                'BIND("referenced_by" AS ?related_via) } '
+                "?document legal:hasProvision ?related . "
+                "?related legal:sectionNumber ?section_id ; "
+                "legal:sectionTitle ?title ; legal:containsPassage ?passage . "
+                "?passage legal:text ?text . "
+                "FILTER(?related != ?matched) "
+                f"{document_filter}"
+                "} ORDER BY STR(?document) ?section_order ?section_suffix "
+                "?relation_order STR(?section_id)",
+                bindings,
+            )
+
+            seen = set(direct_keys)
+            for row in related_rows:
+                key = (_local_name(row["document"]), row["section_id"])
+                if key in seen:
+                    continue
+                seen.add(key)
+                related_results.append(
+                    self._concept_result(
+                        row,
+                        "related",
+                        row["related_via"],
+                        [],
+                    )
+                )
+
+        return direct_results + related_results
+
+    @staticmethod
+    def _concept_result(
+        row: dict,
+        match_type: str,
+        related_via: str | None,
+        concepts: list[str],
+    ) -> dict:
+        title = row["title"] or ""
+        text = row["text"] or ""
+        snippet = re.sub(
+            r"\s+", " ", f"{title} {text[:200]}"
+        ).strip()
+        return {
+            "document_id": _local_name(row["document"]),
+            "document_title": row["document_title"] or "",
+            "source_url": row.get("source_url"),
+            "section_id": row["section_id"],
+            "title": title,
+            "snippet": snippet,
+            "match_type": match_type,
+            "related_via": related_via,
+            "concepts": concepts,
+            "provision_iri": row.get("provision") or row.get("related"),
+        }
 
     @staticmethod
     def _search_result(
