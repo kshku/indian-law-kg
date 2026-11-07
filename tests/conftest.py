@@ -1,3 +1,4 @@
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -10,6 +11,30 @@ from indian_law_kg.documents import Document
 from indian_law_kg.kg import KnowledgeGraph
 
 LEGAL = Namespace(f"{ONTOLOGY_IRI}#")
+
+
+class FakeEmbedder:
+    """Deterministic tiny embedder; never downloads a model."""
+
+    def __init__(self, dimension=4):
+        self.dimension = dimension
+
+    def embed(self, texts):
+        vectors = []
+        for text in texts:
+            digest = hashlib.sha256(text.encode("utf-8")).digest()
+            vectors.append(
+                [
+                    (digest[index % len(digest)] / 127.5) - 1.0
+                    for index in range(self.dimension)
+                ]
+            )
+        return vectors
+
+
+@pytest.fixture
+def fake_embedder():
+    return FakeEmbedder()
 
 
 def _add_section(graph, document_id, section_id, title, text, page):

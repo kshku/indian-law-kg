@@ -1,5 +1,6 @@
 __pycache__/
 .pytest_cache/
+data/vector_db/
 .env
 .env.*
 !.env.example
