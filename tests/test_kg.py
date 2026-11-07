@@ -53,6 +53,56 @@ def test_get_section_is_document_scoped_and_unknown_section_is_none(kg):
     assert kg.get_section("99", "example-act-b")["title"] == "Only in Act B"
 
 
+def test_list_sections_with_text_includes_passage_text_and_page(kg):
+    sections = kg.list_sections_with_text("example-act-a")
+
+    assert len(sections) == 6
+    assert sections[0]["section_id"] == "2"
+    assert sections[0]["text"].startswith("2. Definitions")
+    assert sections[0]["start_page"] == 6
+    assert len(kg.list_sections_with_text()) == 8
+
+
+def test_get_sections_hydrates_in_input_order_and_deduplicates(kg):
+    rows = kg.get_sections(
+        [
+            ("example-act-a", "53-O"),
+            ("example-act-a", "2"),
+            ("example-act-a", "53-O"),
+            ("example-act-a", "missing"),
+        ]
+    )
+
+    assert [row["section_id"] for row in rows] == ["53-O", "2"]
+    assert rows[0]["title"] == "Procedure and powers"
+    assert rows[1]["text"].startswith("2. Definitions")
+    assert kg.get_sections([]) == []
+
+
+def test_find_sections_by_concepts_returns_direct_and_related_rows(kg):
+    results = kg.find_sections_by_concepts(
+        ["definitions"], "example-act-a"
+    )
+
+    assert [
+        (row["section_id"], row["match_type"])
+        for row in results
+    ] == [
+        ("2", "concept"),
+        ("2A", "related"),
+        ("53-O", "related"),
+    ]
+    assert results[0]["concepts"] == ["definitions"]
+    assert results[0]["provision_iri"].endswith(
+        "example-act-a_Section2"
+    )
+    assert results[1]["related_via"] == "references"
+    assert kg.find_sections_by_concepts(
+        ["definitions"], "example-act-b"
+    ) == []
+    assert kg.find_sections_by_concepts([]) == []
+
+
 def test_get_concepts_returns_annotations_for_one_section(kg):
     assert kg.get_concepts("2", "example-act-a") == [
         {
@@ -158,6 +208,13 @@ def test_runtime_kg_retrieval_uses_sparql_not_graph_traversal(
     assert kg.get_concepts("2", "example-act-a")[0]["concept"] == (
         "ConceptDefinitions"
     )
+    assert len(kg.list_sections_with_text("example-act-a")) == 6
+    assert kg.get_sections(
+        [("example-act-a", "2")]
+    )[0]["section_id"] == "2"
+    assert kg.find_sections_by_concepts(
+        ["definitions"], "example-act-a"
+    )[0]["section_id"] == "2"
 
 
 def test_missing_schema_is_reported(monkeypatch, tmp_path, kg):
