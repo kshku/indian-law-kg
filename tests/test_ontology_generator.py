@@ -3,6 +3,7 @@ from rdflib import Literal, Namespace
 from rdflib.namespace import RDF, XSD
 
 from indian_law_kg import config
+from indian_law_kg.annotations import OA, Concept
 from indian_law_kg.documents import Document
 from indian_law_kg.ontology_generator import generate_ontology
 
@@ -105,6 +106,58 @@ def test_generation_is_deterministic(tmp_path):
     second.serialize(destination=second_path, format="xml")
 
     assert first_path.read_bytes() == second_path.read_bytes()
+
+
+def test_generate_ontology_adds_annotations_and_concepts():
+    doc = document("act-a", "The First Act", 1)
+    sections = [
+        section("2", "Definitions", "A consumer may seek a refund.")
+    ]
+    concepts = [
+        Concept(
+            id="consumer",
+            label="consumer",
+            definition="A buyer.",
+            aliases=("consumer",),
+        ),
+        Concept(
+            id="refund",
+            label="refund",
+            definition="Return of money.",
+            aliases=("refund",),
+        ),
+    ]
+
+    graph = generate_ontology([(doc, sections)], concepts=concepts)
+
+    assert (LEGAL.ConceptConsumer, RDF.type, LEGAL.LegalConcept) in graph
+    assert (
+        LEGAL["act-a_Section2_Passage1"],
+        LEGAL.mentionsConcept,
+        LEGAL.ConceptConsumer,
+    ) in graph
+    assert (
+        LEGAL["act-a_Section2_Passage1"],
+        LEGAL.mentionsConcept,
+        LEGAL.ConceptRefund,
+    ) in graph
+    assert len(list(graph.subjects(RDF.type, OA.Annotation))) == 2
+
+
+def test_generate_ontology_loads_the_default_concept_catalog():
+    doc = document("act-a", "The First Act", 1)
+    sections = [
+        section("2", "Definitions", "A consumer may seek a refund.")
+    ]
+
+    graph = generate_ontology([(doc, sections)])
+
+    assert (LEGAL.ConceptConsumer, RDF.type, LEGAL.LegalConcept) in graph
+    assert (
+        LEGAL["act-a_Section2_Passage1"],
+        LEGAL.mentionsConcept,
+        LEGAL.ConceptConsumer,
+    ) in graph
 
 
 def test_generation_rejects_duplicate_ids_and_wrong_counts():

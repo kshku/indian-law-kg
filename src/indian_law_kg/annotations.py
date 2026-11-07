@@ -197,9 +197,11 @@ def add_annotations(
     document: Document,
     section: dict,
     concepts: Sequence[Concept],
+    add_metadata: bool = True,
 ) -> int:
     """Add W3C annotations for one section; return the annotation count."""
-    add_concepts(graph, concepts)
+    if add_metadata:
+        add_concepts(graph, concepts)
 
     section_id = section["section_id"]
     passage = LEGAL[
