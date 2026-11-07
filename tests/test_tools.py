@@ -12,6 +12,7 @@ def test_tool_names_and_calls(kg):
         "kg_list_sections",
         "kg_get_section",
         "kg_find_sections",
+        "kg_get_concepts",
         "kg_get_references",
         "kg_get_referenced_by",
         "kg_sparql",
@@ -41,6 +42,9 @@ def test_tool_names_and_calls(kg):
     assert tools["kg_get_referenced_by"].invoke(
         {"section_id": "2", "document_id": "example-act-a"}
     ) == ["2A"]
+    assert tools["kg_get_concepts"].invoke(
+        {"section_id": "2", "document_id": "example-act-a"}
+    )[0]["concept"] == "ConceptDefinitions"
 
 
 def test_tools_surface_document_ambiguity_and_identity(kg):
