@@ -9,10 +9,12 @@ from rdflib.namespace import RDF
 from . import config
 from .annotations import OA
 from .documents import get_document, load_documents
+from .index_builder import build_index
 from .kg import KnowledgeGraph
 from .ontology_generator import LEGAL, generate_ontology
 from .parser import parse
 from .pdf_utils import extract_pdf
+from .vector_store import FastEmbedder, VectorStore
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -34,6 +36,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     subparsers.add_parser(
         "build", help="Generate the RDF ontology from parsed sections"
+    )
+
+    subparsers.add_parser(
+        "index",
+        help="Build the local concept, text, and graph vector index",
     )
 
     query = subparsers.add_parser(
@@ -152,6 +159,24 @@ def command_build() -> None:
     print(f"Output: {config.GENERATED_ONTOLOGY_PATH}")
 
 
+def command_index() -> None:
+    kg = _load_kg()
+    store = VectorStore(config.VECTOR_DB_PATH)
+    try:
+        store.recreate()
+        counts = build_index(kg, FastEmbedder(), store)
+    finally:
+        store.close()
+
+    print(f"Documents indexed: {counts['documents']}")
+    print(f"Provisions indexed: {counts['provisions']}")
+    print(f"Concepts indexed: {counts['concepts']}")
+    print(f"Text vectors indexed: {counts['text_vectors']}")
+    print(f"Graph vectors indexed: {counts['graph_vectors']}")
+    print(f"Concept vectors indexed: {counts['concept_vectors']}")
+    print(f"Index path: {config.VECTOR_DB_PATH}")
+
+
 def command_query(
     section_id: str, document_id: str | None = None
 ) -> None:
@@ -251,6 +276,8 @@ def main() -> None:
                 command_extract(args.document, args.pdf)
             case "build":
                 command_build()
+            case "index":
+                command_index()
             case "query":
                 command_query(args.section, args.document)
             case "find":
