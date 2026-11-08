@@ -109,6 +109,12 @@ def _load_retriever() -> OntologyRetriever:
     return OntologyRetriever(kg, store, embedder)
 
 
+def _load_optional_retriever() -> OntologyRetriever | None:
+    if not config.VECTOR_DB_PATH.is_dir():
+        return None
+    return _load_retriever()
+
+
 def command_extract(
     document_id: str | None = None, pdf_path: Path | None = None
 ) -> None:
@@ -256,19 +262,30 @@ def command_ask(question: str) -> None:
     from .agent import build_agent
 
     kg = _load_kg()
-    agent = build_agent(kg, kg.graph)
-
-    result = agent.invoke(
-        {"messages": [{"role": "user", "content": question}]}
-    )
+    retriever = _load_optional_retriever()
+    if retriever is None:
+        print(
+            "Note: vector index not found; ontology retrieval is disabled. "
+            "Run `index` to enable it."
+        )
+    try:
+        agent = build_agent(kg, kg.graph, retriever=retriever)
+        result = agent.invoke(
+            {"messages": [{"role": "user", "content": question}]}
+        )
+    finally:
+        if retriever is not None:
+            retriever.store.close()
 
     print(result["messages"][-1].content)
 
 
-async def _chat(kg: KnowledgeGraph) -> None:
+async def _chat(
+    kg: KnowledgeGraph, retriever: OntologyRetriever | None = None
+) -> None:
     from .agent import build_agent
 
-    agent = build_agent(kg, kg.graph)
+    agent = build_agent(kg, kg.graph, retriever=retriever)
 
     while True:
         try:
@@ -313,7 +330,18 @@ async def _chat(kg: KnowledgeGraph) -> None:
 
 
 def command_chat() -> None:
-    asyncio.run(_chat(_load_kg()))
+    kg = _load_kg()
+    retriever = _load_optional_retriever()
+    if retriever is None:
+        print(
+            "Note: vector index not found; ontology retrieval is disabled. "
+            "Run `index` to enable it."
+        )
+    try:
+        asyncio.run(_chat(kg, retriever))
+    finally:
+        if retriever is not None:
+            retriever.store.close()
 
 
 def main() -> None:
