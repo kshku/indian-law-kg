@@ -1,4 +1,5 @@
 import json
+import re
 
 import pytest
 from rdflib import Graph
@@ -128,6 +129,55 @@ def test_command_build_loads_all_parsed_documents(tmp_path, monkeypatch):
         "act-b",
     ]
     assert graph.serialize(format="xml")
+
+
+def test_parser_index_command():
+    parser = build_parser()
+    args = parser.parse_args(["index"])
+    assert args.command == "index"
+
+
+def test_command_index_builds_both_collections(
+    tmp_path, kg, fake_embedder, monkeypatch, capsys
+):
+    from indian_law_kg import index_builder
+
+    real_store = main.VectorStore
+    monkeypatch.setattr(main, "_load_kg", lambda: kg)
+    monkeypatch.setattr(main, "FastEmbedder", lambda: fake_embedder)
+    monkeypatch.setattr(
+        main,
+        "VectorStore",
+        lambda path: real_store(
+            path, text_dimension=4, graph_dimension=4
+        ),
+    )
+    monkeypatch.setattr(
+        main,
+        "build_index",
+        lambda kg, embedder, store: index_builder.build_index(
+            kg, embedder, store, graph_dimension=4
+        ),
+    )
+    monkeypatch.setattr(
+        config, "VECTOR_DB_PATH", tmp_path / "vector_db"
+    )
+
+    main.command_index()
+
+    output = capsys.readouterr().out
+    assert "Provisions indexed: 8" in output
+    assert "Text vectors indexed: 8" in output
+    assert "Graph vectors indexed: 8" in output
+    concept_count = int(
+        re.search(r"Concepts indexed: (\d+)", output).group(1)
+    )
+    vector_count = int(
+        re.search(r"Concept vectors indexed: (\d+)", output).group(1)
+    )
+    assert concept_count > 0
+    assert vector_count == concept_count
+    assert (tmp_path / "vector_db").is_dir()
 
 
 def test_query_and_find_keep_document_filter(kg, monkeypatch, capsys):
