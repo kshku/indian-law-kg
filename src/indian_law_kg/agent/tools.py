@@ -5,7 +5,7 @@ from ..settings import settings
 from ..sparql import run_query
 
 
-def build_tools(kg: KnowledgeGraph, graph) -> list:
+def build_tools(kg: KnowledgeGraph, graph, retriever=None) -> list:
     """Create the read-only tools the agent can call."""
 
     @tool
@@ -77,7 +77,7 @@ def build_tools(kg: KnowledgeGraph, graph) -> list:
         the RDF graph and return columns and rows."""
         return run_query(graph, query, settings.max_sparql_rows)
 
-    return [
+    tools = [
         kg_get_schema,
         kg_list_documents,
         kg_list_sections,
@@ -87,4 +87,39 @@ def build_tools(kg: KnowledgeGraph, graph) -> list:
         kg_get_references,
         kg_get_referenced_by,
         kg_sparql,
+    ]
+    if retriever is None:
+        return tools
+
+    @tool
+    def kg_resolve_concepts(query: str) -> list[dict]:
+        """Resolve a question to local legal concepts using exact aliases
+        first and concept vectors only as a fallback. Returns concept IDs,
+        labels, broader links, method (`alias` or `embedding`), and score.
+        Concepts are local labels, not legal conclusions."""
+        return retriever.resolve_concepts(query)
+
+    @tool
+    def kg_ontology_search(
+        query: str, document_id: str | None = None, limit: int = 10
+    ) -> dict:
+        """Search provisions through the ontology: resolve concepts, query
+        annotated sections with SPARQL, then rank only inside those grounded
+        candidates with keyword and text-vector signals. `ontology_grounded`
+        is false for `keyword_fallback` results."""
+        return retriever.search(query, document_id, limit)
+
+    @tool
+    def kg_similar_provisions(
+        section_id: str, document_id: str | None = None, limit: int = 10
+    ) -> list[dict]:
+        """Return provisions with similar graph structure, based on citation
+        and concept co-occurrence embeddings. Use this as context, not as
+        direct evidence for the user's question."""
+        return retriever.similar(section_id, document_id, limit)
+
+    return tools + [
+        kg_resolve_concepts,
+        kg_ontology_search,
+        kg_similar_provisions,
     ]

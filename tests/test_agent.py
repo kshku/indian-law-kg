@@ -11,15 +11,33 @@ def test_build_agent_uses_injected_model(monkeypatch, kg):
     monkeypatch.setattr(agent, "create_agent", fake_create_agent)
 
     injected = object()
+    retriever = object()
 
-    result = agent.build_agent(kg, kg.graph, chat_model=injected)
+    result = agent.build_agent(
+        kg,
+        kg.graph,
+        chat_model=injected,
+        retriever=retriever,
+    )
 
     assert result == "agent"
     assert captured["model"] is injected
     assert [tool.name for tool in captured["tools"]][0] == "kg_get_schema"
     tool_names = {tool.name for tool in captured["tools"]}
-    assert "kg_list_documents" in tool_names
-    assert "document_id" in captured["system_prompt"]
-    assert "53-O" in captured["system_prompt"]
-    assert 'match_type="related"' in captured["system_prompt"]
-    assert "no synonym/alias data" in captured["system_prompt"]
+    assert {
+        "kg_list_documents",
+        "kg_get_concepts",
+        "kg_resolve_concepts",
+        "kg_ontology_search",
+        "kg_similar_provisions",
+    } <= tool_names
+    prompt = captured["system_prompt"]
+    assert "document_id" in prompt
+    assert "53-O" in prompt
+    assert 'match_type="related"' in prompt
+    assert "ontology_grounded" in prompt
+    assert "keyword_fallback" in prompt
+    assert "alias" in prompt
+    assert "embedding" in prompt
+    assert "graph-similar" in prompt
+    assert "no synonym/alias data" not in prompt
