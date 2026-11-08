@@ -14,6 +14,7 @@ from .kg import KnowledgeGraph
 from .ontology_generator import LEGAL, generate_ontology
 from .parser import parse
 from .pdf_utils import extract_pdf
+from .retrieval import OntologyRetriever
 from .vector_store import FastEmbedder, VectorStore
 
 def build_parser() -> argparse.ArgumentParser:
@@ -55,6 +56,18 @@ def build_parser() -> argparse.ArgumentParser:
     find.add_argument("query")
     find.add_argument("--document", help="filter by manifest document ID")
 
+    search = subparsers.add_parser(
+        "search", help="Search provisions through the ontology"
+    )
+    search.add_argument("query")
+    search.add_argument("--document", help="filter by manifest document ID")
+
+    similar = subparsers.add_parser(
+        "similar", help="Find provisions with similar graph structure"
+    )
+    similar.add_argument("--section", required=True)
+    similar.add_argument("--document", help="filter by manifest document ID")
+
     ask = subparsers.add_parser(
         "ask", help="Ask the agent one question"
     )
@@ -77,6 +90,23 @@ def _load_kg() -> KnowledgeGraph:
     return KnowledgeGraph(
         config.GENERATED_ONTOLOGY_PATH, config.ONTOLOGY_SCHEMA_PATH
     )
+
+
+def _load_retriever() -> OntologyRetriever:
+    if not config.VECTOR_DB_PATH.is_dir():
+        raise FileNotFoundError(
+            f"Vector index not found: {config.VECTOR_DB_PATH}. "
+            "Run `index` first."
+        )
+
+    kg = _load_kg()
+    store = VectorStore(config.VECTOR_DB_PATH)
+    try:
+        embedder = FastEmbedder()
+    except Exception:
+        store.close()
+        raise
+    return OntologyRetriever(kg, store, embedder)
 
 
 def command_extract(
@@ -202,6 +232,26 @@ def command_find(query: str, document_id: str | None = None) -> None:
     )
 
 
+def command_search(query: str, document_id: str | None = None) -> None:
+    retriever = _load_retriever()
+    try:
+        result = retriever.search(query, document_id)
+    finally:
+        retriever.store.close()
+    print(json.dumps(result, indent=2, ensure_ascii=False))
+
+
+def command_similar(
+    section_id: str, document_id: str | None = None
+) -> None:
+    retriever = _load_retriever()
+    try:
+        results = retriever.similar(section_id, document_id)
+    finally:
+        retriever.store.close()
+    print(json.dumps(results, indent=2, ensure_ascii=False))
+
+
 def command_ask(question: str) -> None:
     from .agent import build_agent
 
@@ -282,6 +332,10 @@ def main() -> None:
                 command_query(args.section, args.document)
             case "find":
                 command_find(args.query, args.document)
+            case "search":
+                command_search(args.query, args.document)
+            case "similar":
+                command_similar(args.section, args.document)
             case "ask":
                 command_ask(args.question)
             case "chat":
