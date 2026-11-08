@@ -1,5 +1,6 @@
 import json
 import re
+from types import SimpleNamespace
 
 import pytest
 from rdflib import Graph
@@ -279,6 +280,63 @@ def test_load_retriever_requires_index(tmp_path, monkeypatch):
 
     with pytest.raises(FileNotFoundError, match="Run `index` first"):
         main._load_retriever()
+
+
+def test_command_ask_passes_retriever_and_closes_store(
+    monkeypatch, capsys
+):
+    retriever = FakeRetriever()
+    captured = {}
+    fake_agent = SimpleNamespace(
+        invoke=lambda payload: {
+            "messages": [SimpleNamespace(content="answer")]
+        }
+    )
+
+    def fake_build_agent(kg, graph, retriever=None):
+        captured["retriever"] = retriever
+        return fake_agent
+
+    from indian_law_kg import agent as agent_module
+
+    monkeypatch.setattr(agent_module, "build_agent", fake_build_agent)
+    monkeypatch.setattr(
+        main, "_load_kg", lambda: SimpleNamespace(graph=object())
+    )
+    monkeypatch.setattr(
+        main, "_load_optional_retriever", lambda: retriever
+    )
+
+    main.command_ask("question")
+
+    assert captured["retriever"] is retriever
+    assert retriever.store.closed is True
+    assert "answer" in capsys.readouterr().out
+
+
+def test_command_ask_without_index_prints_note(monkeypatch, capsys):
+    fake_agent = SimpleNamespace(
+        invoke=lambda payload: {
+            "messages": [SimpleNamespace(content="answer")]
+        }
+    )
+    from indian_law_kg import agent as agent_module
+
+    monkeypatch.setattr(
+        agent_module, "build_agent", lambda *args, **kwargs: fake_agent
+    )
+    monkeypatch.setattr(
+        main, "_load_kg", lambda: SimpleNamespace(graph=object())
+    )
+    monkeypatch.setattr(
+        main, "_load_optional_retriever", lambda: None
+    )
+
+    main.command_ask("question")
+
+    output = capsys.readouterr().out
+    assert "Run `index` to enable it" in output
+    assert "answer" in output
 
 
 def test_query_and_find_keep_document_filter(kg, monkeypatch, capsys):

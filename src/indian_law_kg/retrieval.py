@@ -289,7 +289,10 @@ class OntologyRetriever:
             for row in self.kg.get_sections(list(hit_by_key))
         }
         results = []
+        seed_key = (resolved, section_id)
         for key, hit in hit_by_key.items():
+            if key == seed_key:
+                continue
             row = hydrated.get(key)
             if row is None:
                 continue
