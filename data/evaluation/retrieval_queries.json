@@ -1,0 +1,62 @@
+[
+  {
+    "query": "product liability action against a manufacturer",
+    "document_id": "consumer-protection-act-2019",
+    "concepts": ["product-liability", "manufacturer"],
+    "relevant": ["83", "84", "86"]
+  },
+  {
+    "query": "refund for a defective product",
+    "document_id": "consumer-protection-act-2019",
+    "concepts": ["refund", "defect"],
+    "relevant": ["2", "83", "84"]
+  },
+  {
+    "query": "abuse of dominant position",
+    "document_id": "competition-act-2002",
+    "concepts": ["abuse-of-dominant-position"],
+    "relevant": ["4", "27"]
+  },
+  {
+    "query": "responsibilities of a food business operator",
+    "document_id": "food-safety-and-standards-act-2006",
+    "concepts": ["food-business"],
+    "relevant": ["26", "31", "32"]
+  },
+  {
+    "query": "standard weights and measures",
+    "document_id": "legal-metrology-act-2009",
+    "concepts": ["standard"],
+    "relevant": ["7", "8", "9"]
+  },
+  {
+    "query": "hallmark certification for jewellers",
+    "document_id": "bureau-of-indian-standards-act-2016",
+    "concepts": ["hallmark", "certification"],
+    "relevant": ["14", "15", "29"]
+  },
+  {
+    "query": "passenger fares and timings at stations",
+    "document_id": "railways-act-1989",
+    "concepts": ["passenger"],
+    "relevant": ["30", "49"]
+  },
+  {
+    "query": "contents of a multimodal transport document",
+    "document_id": "multimodal-transportation-of-goods-act-1993",
+    "concepts": ["multimodal-transport"],
+    "relevant": ["7", "8", "9", "10", "11"]
+  },
+  {
+    "query": "transfer of pending proceedings before a tribunal",
+    "document_id": "jammu-and-kashmir-reorganisation-act-2019",
+    "concepts": ["tribunal"],
+    "relevant": ["100"]
+  },
+  {
+    "query": "appointment and role of a mediator",
+    "document_id": "mediation-act-2023",
+    "concepts": ["mediator"],
+    "relevant": ["8", "10", "16"]
+  }
+]
