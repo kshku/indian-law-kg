@@ -180,6 +180,107 @@ def test_command_index_builds_both_collections(
     assert (tmp_path / "vector_db").is_dir()
 
 
+class ClosingStore:
+    def __init__(self):
+        self.closed = False
+
+    def close(self):
+        self.closed = True
+
+
+class FakeRetriever:
+    def __init__(self):
+        self.store = ClosingStore()
+        self.search_args = None
+        self.similar_args = None
+        self.search_result = {"concepts": [], "results": []}
+        self.similar_result = []
+
+    def search(self, query, document_id=None):
+        self.search_args = (query, document_id)
+        return self.search_result
+
+    def similar(self, section_id, document_id=None):
+        self.similar_args = (section_id, document_id)
+        return self.similar_result
+
+
+def test_parser_search_and_similar_commands():
+    parser = build_parser()
+
+    search = parser.parse_args(
+        ["search", "consumer protection", "--document", "act-a"]
+    )
+    similar = parser.parse_args(
+        ["similar", "--section", "2", "--document", "act-a"]
+    )
+
+    assert (search.command, search.query, search.document) == (
+        "search",
+        "consumer protection",
+        "act-a",
+    )
+    assert (similar.command, similar.section, similar.document) == (
+        "similar",
+        "2",
+        "act-a",
+    )
+
+
+def test_command_search_prints_json_and_closes_store(
+    monkeypatch, capsys
+):
+    retriever = FakeRetriever()
+    retriever.search_result = {
+        "concepts": [{"concept_id": "definitions"}],
+        "results": [{"section_id": "2"}],
+    }
+    monkeypatch.setattr(main, "_load_retriever", lambda: retriever)
+
+    main.command_search("definitions", "example-act-a")
+
+    assert retriever.search_args == ("definitions", "example-act-a")
+    assert retriever.store.closed is True
+    assert json.loads(capsys.readouterr().out) == retriever.search_result
+
+
+def test_command_similar_prints_json_and_closes_store(
+    monkeypatch, capsys
+):
+    retriever = FakeRetriever()
+    retriever.similar_result = [{"section_id": "2A"}]
+    monkeypatch.setattr(main, "_load_retriever", lambda: retriever)
+
+    main.command_similar("2", "example-act-a")
+
+    assert retriever.similar_args == ("2", "example-act-a")
+    assert retriever.store.closed is True
+    assert json.loads(capsys.readouterr().out) == retriever.similar_result
+
+
+def test_command_search_closes_store_on_error(monkeypatch):
+    retriever = FakeRetriever()
+
+    def fail(query, document_id=None):
+        raise ValueError("search failed")
+
+    retriever.search = fail
+    monkeypatch.setattr(main, "_load_retriever", lambda: retriever)
+
+    with pytest.raises(ValueError, match="search failed"):
+        main.command_search("definitions")
+    assert retriever.store.closed is True
+
+
+def test_load_retriever_requires_index(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        config, "VECTOR_DB_PATH", tmp_path / "missing-index"
+    )
+
+    with pytest.raises(FileNotFoundError, match="Run `index` first"):
+        main._load_retriever()
+
+
 def test_query_and_find_keep_document_filter(kg, monkeypatch, capsys):
     monkeypatch.setattr(main, "_load_kg", lambda: kg)
 
