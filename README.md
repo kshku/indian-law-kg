@@ -178,6 +178,19 @@ Graph vectors come from deterministic symmetric-normalised SVD over the
 provision affinity graph. Embeddings stay in `data/vector_db/`, not in RDF. Run
 `build` before `index` so the annotations and graph exist.
 
+### Evaluation
+
+The hand-labelled queries in `data/evaluation/retrieval_queries.json` cover all
+nine Acts. After `build` and `index`, compare keyword-only and ontology-mediated
+retrieval:
+
+```bash
+uv run python scripts/evaluate_retrieval.py
+```
+
+The report includes concept top-1/top-3 accuracy, recall@5/10, MRR, nDCG@10,
+citation accuracy, ontology-grounded percentage, and median/p95 latency.
+
 ## Agent
 
 The agent in `src/indian_law_kg/agent/` uses typed SPARQL-backed tools including
