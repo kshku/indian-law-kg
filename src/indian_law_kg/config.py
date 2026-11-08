@@ -5,6 +5,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = PROJECT_ROOT / "data"
 CONCEPTS_PATH = DATA_DIR / "concepts.json"
 DOCUMENTS_PATH = DATA_DIR / "documents.json"
+EVALUATION_QUERIES_PATH = DATA_DIR / "evaluation" / "retrieval_queries.json"
 VECTOR_DB_PATH = DATA_DIR / "vector_db"
 PROVISION_COLLECTION = "provisions"
 CONCEPT_COLLECTION = "concepts"
