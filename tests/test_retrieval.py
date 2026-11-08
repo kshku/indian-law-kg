@@ -248,6 +248,12 @@ def test_similar_returns_graph_neighbours(kg, fake_embedder):
     store.graph_vector = [1.0, 0.0, 0.0, 0.0]
     store.similar_hits = [
         hit(
+            "https://example.org/legal-ontology#example-act-a_Section2",
+            "example-act-a",
+            "2",
+            score=1.0,
+        ),
+        hit(
             "https://example.org/legal-ontology#example-act-a_Section2A",
             "example-act-a",
             "2A",
