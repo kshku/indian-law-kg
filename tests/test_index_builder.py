@@ -72,6 +72,32 @@ def test_build_index_writes_concept_text_and_graph_vectors(
         store.close()
 
 
+def test_build_index_reports_progress(tmp_path, kg, fake_embedder):
+    store = VectorStore(
+        tmp_path / "qdrant", text_dimension=4, graph_dimension=4
+    )
+    store.recreate()
+    events = []
+    try:
+        build_index(
+            kg,
+            fake_embedder,
+            store,
+            concepts=concepts(),
+            graph_dimension=4,
+            progress=lambda stage, completed, total: events.append(
+                (stage, completed, total)
+            ),
+        )
+    finally:
+        store.close()
+
+    assert ("concept embeddings", 2, 2) in events
+    assert ("graph vectors", 8, 8) in events
+    assert ("provision embeddings", 8, 8) in events
+    assert events[-1] == ("writing provision vectors", 8, 8)
+
+
 def test_build_index_rejects_dimension_mismatch(
     tmp_path, kg, fake_embedder
 ):

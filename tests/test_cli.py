@@ -156,8 +156,8 @@ def test_command_index_builds_both_collections(
     monkeypatch.setattr(
         main,
         "build_index",
-        lambda kg, embedder, store: index_builder.build_index(
-            kg, embedder, store, graph_dimension=4
+        lambda kg, embedder, store, progress=None: index_builder.build_index(
+            kg, embedder, store, graph_dimension=4, progress=progress
         ),
     )
     monkeypatch.setattr(

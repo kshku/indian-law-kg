@@ -40,6 +40,12 @@ def test_graph_embedding_is_deterministic_and_canonical(kg):
             assert row[int(np.argmax(np.abs(row)))] >= 0
 
 
+def test_embedding_keeps_many_components_non_zero():
+    embedding = embed_graph(np.eye(12), 4)
+
+    assert np.all(np.linalg.norm(embedding, axis=1) > 0)
+
+
 def test_related_provisions_are_more_similar_than_unrelated_ones(tmp_path):
     from indian_law_kg import config
     from indian_law_kg.documents import Document

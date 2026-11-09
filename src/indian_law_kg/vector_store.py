@@ -16,19 +16,58 @@ class Embedder(Protocol):
 
 
 class FastEmbedder:
-    """FastEmbed wrapper that keeps the model lazy and CPU-only."""
+    """FastEmbed wrapper that uses CUDA when available and falls back to CPU."""
 
     dimension = config.TEXT_VECTOR_DIM
 
-    def __init__(self, model_name: str = config.EMBEDDING_MODEL):
+    def __init__(
+        self,
+        model_name: str = config.EMBEDDING_MODEL,
+        max_length: int = config.EMBEDDING_MAX_LENGTH,
+        batch_size: int = config.EMBEDDING_BATCH_SIZE,
+    ):
         from fastembed import TextEmbedding
 
-        self.model = TextEmbedding(model_name=model_name)
+        self.max_length = max_length
+        self.batch_size = batch_size
+        self.device = "cpu"
+        self.device_error: str | None = None
+
+        try:
+            import onnxruntime as ort
+
+            cuda_available = "CUDAExecutionProvider" in ort.get_available_providers()
+        except Exception:
+            cuda_available = False
+        self.cuda_available = cuda_available
+
+        if cuda_available:
+            try:
+                self.model = TextEmbedding(model_name=model_name, cuda=True)
+                session = getattr(getattr(self.model, "model", None), "model", None)
+                providers = session.get_providers() if session is not None else []
+                if "CUDAExecutionProvider" in providers:
+                    self.device = "cuda"
+                else:
+                    self.device_error = "CUDA provider was not selected"
+            except Exception as exc:
+                self.device_error = str(exc)
+
+        if self.device != "cuda":
+            self.model = TextEmbedding(model_name=model_name, cuda=False)
+
+        tokenizer = getattr(getattr(self.model, "model", None), "tokenizer", None)
+        if tokenizer is not None and max_length > 0:
+            tokenizer.enable_truncation(max_length=max_length)
 
     def embed(self, texts: Sequence[str]) -> list[list[float]]:
+        if not texts:
+            return []
         return [
             [float(value) for value in vector]
-            for vector in self.model.embed(list(texts))
+            for vector in self.model.embed(
+                list(texts), batch_size=self.batch_size
+            )
         ]
 
 

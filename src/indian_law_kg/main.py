@@ -195,12 +195,43 @@ def command_build() -> None:
     print(f"Output: {config.GENERATED_ONTOLOGY_PATH}")
 
 
+def _report_index_progress(stage: str, completed: int, total: int) -> None:
+    width = 24
+    ratio = completed / total if total else 1.0
+    filled = min(width, max(0, int(width * ratio)))
+    bar = "=" * filled + "-" * (width - filled)
+    print(
+        f"{stage:<24} [{bar}] {completed:>4}/{total:<4}",
+        flush=True,
+    )
+
+
 def command_index() -> None:
+    print("Loading knowledge graph...", flush=True)
     kg = _load_kg()
+    print("Loading embedding model...", flush=True)
+    embedder = FastEmbedder()
+    device = getattr(embedder, "device", "cpu")
+    max_length = getattr(embedder, "max_length", "?")
+    print(
+        f"Embedding device: {device} (max {max_length} tokens)",
+        flush=True,
+    )
+    if device != "cuda":
+        if not getattr(embedder, "cuda_available", False):
+            print("CUDA provider not installed; using CPU.", flush=True)
+        elif getattr(embedder, "device_error", None):
+            print(
+                f"CUDA unavailable ({embedder.device_error}); using CPU.",
+                flush=True,
+            )
+
     store = VectorStore(config.VECTOR_DB_PATH)
     try:
         store.recreate()
-        counts = build_index(kg, FastEmbedder(), store)
+        counts = build_index(
+            kg, embedder, store, progress=_report_index_progress
+        )
     finally:
         store.close()
 
