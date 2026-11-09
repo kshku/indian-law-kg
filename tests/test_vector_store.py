@@ -2,8 +2,10 @@ from uuid import NAMESPACE_URL, uuid5
 
 import pytest
 
+from indian_law_kg import config
 from indian_law_kg.vector_store import (
     ConceptPoint,
+    FastEmbedder,
     VectorPoint,
     VectorStore,
     point_id,
@@ -20,6 +22,70 @@ def store(tmp_path):
     store.recreate()
     yield store
     store.close()
+
+
+def fake_embedding_class(calls, fail_cuda=False):
+    class FakeTokenizer:
+        def enable_truncation(self, max_length):
+            self.truncation = {"max_length": max_length}
+
+    class FakeSession:
+        def __init__(self, provider):
+            self.provider = provider
+
+        def get_providers(self):
+            return [self.provider]
+
+    class FakeModel:
+        def __init__(self, cuda):
+            self.model = FakeSession(
+                "CUDAExecutionProvider" if cuda else "CPUExecutionProvider"
+            )
+            self.tokenizer = FakeTokenizer()
+
+    class FakeTextEmbedding:
+        def __init__(self, model_name, cuda):
+            calls.append((model_name, cuda))
+            if cuda and fail_cuda:
+                raise RuntimeError("CUDA failed")
+            self.model = FakeModel(cuda)
+
+    return FakeTextEmbedding
+
+
+def test_fastembedder_uses_cuda_when_available(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        "fastembed.TextEmbedding", fake_embedding_class(calls)
+    )
+    monkeypatch.setattr(
+        "onnxruntime.get_available_providers",
+        lambda: ["CUDAExecutionProvider", "CPUExecutionProvider"],
+    )
+
+    embedder = FastEmbedder(max_length=256)
+
+    assert embedder.device == "cuda"
+    assert calls == [(config.EMBEDDING_MODEL, True)]
+    assert embedder.model.model.tokenizer.truncation == {"max_length": 256}
+
+
+def test_fastembedder_falls_back_to_cpu(monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        "fastembed.TextEmbedding",
+        fake_embedding_class(calls, fail_cuda=True),
+    )
+    monkeypatch.setattr(
+        "onnxruntime.get_available_providers",
+        lambda: ["CUDAExecutionProvider", "CPUExecutionProvider"],
+    )
+
+    embedder = FastEmbedder()
+
+    assert embedder.device == "cpu"
+    assert embedder.device_error == "CUDA failed"
+    assert [cuda for _, cuda in calls] == [True, False]
 
 
 def provision(iri, document_id, section_id, text_vector, graph_vector):

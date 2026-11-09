@@ -82,8 +82,8 @@ def build_graph_matrix(
 
     affinity = citation + 0.5 * concept_affinity
     np.fill_diagonal(affinity, 0.0)
-    # Self-loops keep every provision in the spectral embedding and make
-    # directly related provisions share components instead of alternating.
+    # Self-loops keep every provision in the graph embedding and make
+    # directly related provisions share neighbourhood features.
     affinity = affinity + np.eye(size)
 
     degrees = affinity.sum(axis=1)
@@ -97,19 +97,24 @@ def build_graph_matrix(
 
 
 def embed_graph(matrix: np.ndarray, dimension: int) -> np.ndarray:
-    """Embed a symmetric affinity matrix with truncated SVD."""
+    """Embed local graph structure with a deterministic random projection.
+
+    The one- and two-hop neighbourhoods are projected into ``dimension``
+    dimensions. This preserves local similarity without letting the leading
+    component of a large disconnected graph dominate every provision vector.
+    """
     if matrix.size == 0:
         return np.zeros((matrix.shape[0], dimension), dtype=float)
 
-    u, singular_values, _ = np.linalg.svd(matrix, full_matrices=False)
-    rank = min(dimension, len(singular_values))
-    embedding = u[:, :rank] * np.sqrt(singular_values[:rank])
-    if rank < dimension:
-        embedding = np.pad(
-            embedding,
-            ((0, 0), (0, dimension - rank)),
-            mode="constant",
-        )
+    features = matrix + 0.5 * (matrix @ matrix)
+    projection = np.random.default_rng(42).standard_normal(
+        (matrix.shape[1], dimension)
+    )
+    embedding = features @ projection / np.sqrt(max(dimension, 1))
+
+    norms = np.linalg.norm(embedding, axis=1)
+    positive = norms > 0
+    embedding[positive] /= norms[positive, None]
 
     for row in range(embedding.shape[0]):
         values = embedding[row]

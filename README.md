@@ -174,9 +174,22 @@ The index uses Qdrant local mode. It has two collections:
 
 Text vectors use FastEmbed with
 `jinaai/jina-embeddings-v2-small-en`; the model downloads once on first use.
-Graph vectors come from deterministic symmetric-normalised SVD over the
-provision affinity graph. Embeddings stay in `data/vector_db/`, not in RDF. Run
-`build` before `index` so the annotations and graph exist.
+Inputs are truncated to 512 tokens and embedded in small batches so the
+8k-token model context does not exhaust memory. `index` prints a progress bar
+for each stage.
+
+Embedding uses CUDA automatically when FastEmbed can see a CUDA execution
+provider, and falls back to CPU otherwise. Install the optional GPU runtime
+first:
+
+```bash
+uv sync --extra gpu
+```
+
+Graph vectors are deterministic random projections of one- and two-hop
+neighbourhoods in the normalised provision affinity graph. Embeddings stay in
+`data/vector_db/`, not in RDF. Run `build` before `index` so the annotations
+and graph exist.
 
 ### Evaluation
 
